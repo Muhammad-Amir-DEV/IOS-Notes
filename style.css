@@ -226,7 +226,75 @@ body {
 .info {
     pointer-events: none;
 }
+@keyframes note-pop {
+    0% {
+        transform: scale(0.85) rotate(var(--rotation));
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) rotate(var(--rotation));
+        opacity: 1;
+    }
+}
+
+.note {
+    animation: note-pop 0.25s cubic-bezier(.2,.9,.3,1);
+}
+.whatsapp-btn {
+    position: relative;
+    background: #25d366; /* WhatsApp green */
+    box-shadow: 0 8px 25px rgba(37, 211, 102, 0.45);
+}
+
+.note-counter {
+    position: absolute;
+    top: -8px;
+    right: 30px;
+
+    min-width: 18px;
+    height: 18px;
+    padding: 2px;
+
+    background: #25d366; /* WhatsApp green */
+    color: #ffffff;
+
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+
+    border-radius: 999px;
+    border: 1px solid #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    pointer-events: none;
+}
+
+.note-counter {
+    animation: badge-bounce 0.25s ease;
+}
+
+@keyframes badge-bounce {
+    0% { transform: scale(0.6); }
+    70% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+
 
 .info-box {
     pointer-events: auto;
+}
+.note::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg ... %3E");
+    opacity: 5;
+    pointer-events: none;
+}
+.note:focus-within {
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
 }

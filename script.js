@@ -4,6 +4,40 @@ let isPanning = false, panStart = { x: 0, y: 0 }, historyStack = [], highestZ = 
 
 const world = document.getElementById('world'), grid = document.getElementById('grid-bg');
 
+const sounds = {
+    pop: new Audio('sounds/pop.mp3'),
+    paper: new Audio('sounds/paper.mp3')
+};
+function updateNoteCounter() {
+    const counter = document.getElementById('noteCounter');
+    if (!counter) return;
+
+    const count = document.querySelectorAll('.note').length;
+    counter.textContent = count;
+
+    // Hide badge when no notes
+    counter.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function playSound(sound) {
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+}
+window.onload = () => {
+    const saved = JSON.parse(localStorage.getItem('final_pro_board_2025'));
+    if (saved) {
+        cam = saved.cam;
+        saved.notes.forEach(n => createNote(n, true));
+        updateView();
+    } else {
+        createNote();
+    }
+
+    updateNoteCounter(); // ← important
+};
+
+
+
 function updateView() {
     world.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.zoom})`;
     grid.style.backgroundPosition = `${cam.x}px ${cam.y}px`;
@@ -83,30 +117,6 @@ window.addEventListener('pointercancel', () => {
     activeNote = null;
 });
 
-// window.addEventListener('mousedown', (e) => {
-//     if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
-//         isPanning = true; panStart = { x: e.clientX - cam.x, y: e.clientY - cam.y };
-//         document.body.style.cursor = 'grabbing';
-//     }
-// });
-
-// window.addEventListener('mousemove', (e) => {
-//     if (isPanning) { cam.x = e.clientX - panStart.x; cam.y = e.clientY - panStart.y; updateView(); }
-//     if (activeNote) {
-//         // Edge Panning
-//         if (e.clientX > window.innerWidth - 60) cam.x -= 15;
-//         if (e.clientX < 60) cam.x += 15;
-//         if (e.clientY > window.innerHeight - 60) cam.y -= 15;
-//         if (e.clientY < 60) cam.y += 15;
-
-//         let nx = (e.clientX - cam.x) / cam.zoom - noteOffset.x;
-//         let ny = (e.clientY - cam.y) / cam.zoom - noteOffset.y;
-//         activeNote.style.left = nx + 'px'; activeNote.style.top = ny + 'px';
-//         updateView();
-//     }
-// });
-
-// window.addEventListener('mouseup', () => { isPanning = false; if (activeNote) activeNote.classList.remove('dragging'); activeNote = null; document.body.style.cursor = 'default'; });
 
 // --- NOTES LOGIC ---
 function hexToRgba(hex, a = 0.6) {
@@ -154,15 +164,16 @@ function createNote(restore = null, isUndo = false) {
     document.getElementById('board').appendChild(note);
     if (!isUndo) historyStack.push({ type: 'add', id: id });
     save();
+updateNoteCounter();
+
+if (!isUndo) {
+    playSound(sounds.pop);
 }
 
-// function grabNote(e, id) {
-//     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-//     activeNote = document.getElementById(id); activeNote.style.zIndex = ++highestZ;
-//     activeNote.classList.add('dragging');
-//     noteOffset.x = (e.clientX - cam.x) / cam.zoom - activeNote.offsetLeft;
-//     noteOffset.y = (e.clientY - cam.y) / cam.zoom - activeNote.offsetTop;
-// }
+
+}
+
+
 function grabNote(e, id) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
 
@@ -188,11 +199,36 @@ function updateNoteColor(id, hex) {
 
 function deleteNote(id) {
     const el = document.getElementById(id);
-    historyStack.push({ type: 'delete', id, x: el.offsetLeft, y: el.offsetTop, hex: el.querySelector('.color-dot').value, rgba: el.style.backgroundColor, rot: el.style.getPropertyValue('--rotation'), content: el.querySelector('textarea').value });
-    el.remove(); save();
+
+    playSound(sounds.paper); // ← PAPER sound on delete
+
+    historyStack.push({
+        type: 'delete',
+        id,
+        x: el.offsetLeft,
+        y: el.offsetTop,
+        hex: el.querySelector('.color-dot').value,
+        rgba: el.style.backgroundColor,
+        rot: el.style.getPropertyValue('--rotation'),
+        content: el.querySelector('textarea').value
+    });
+
+    el.remove();
+updateNoteCounter();
+    save();
+
 }
 
-function deleteAll() { if (confirm("Clear board?")) { document.getElementById('board').innerHTML = ''; localStorage.clear(); historyStack = []; } }
+
+function deleteAll() {
+    if (!confirm("Clear board?")) return;
+
+    document.getElementById('board').innerHTML = '';
+    localStorage.clear();
+    historyStack = [];
+
+    updateNoteCounter(); // 🔴 FIX: update badge
+}
 
 window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'z') { e.preventDefault(); const a = historyStack.pop(); if (!a) return; if (a.type === 'add') document.getElementById(a.id)?.remove(); else createNote(a, true); save(); }
